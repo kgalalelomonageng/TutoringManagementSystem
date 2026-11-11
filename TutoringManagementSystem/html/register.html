@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Registration</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Student Registration</h1>
+
+    <form action="../php/register.php" method="POST">
+      <div>
+        <label for="first_name">First Name</label>
+        <input id="first_name" type="text" name="first_name" required minlength="2">
+      </div>
+
+      <div>
+        <label for="last_name">Last Name</label>
+        <input id="last_name" type="text" name="last_name" required minlength="2">
+      </div>
+
+      <div>
+        <label for="email">Email</label>
+        <input id="email" type="email" name="email" required>
+      </div>
+
+      <div>
+        <label for="phone">Phone Number</label>
+        <input id="phone" type="tel" name="phone" pattern="[0-9]{10}" required>
+      </div>
+
+      <div>
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" minlength="8" required>
+      </div>
+
+      <button type="submit" name="register">Register</button>
+
+      <p class="status-message" id="formMessage" role="status" hidden></p>
+      <p class="page-link">
+        Already registered? <a href="login.html">Login here</a>
+      </p>
+      <p class="page-link">
+        <a href="../index.html">Back to home</a>
+      </p>
+    </form>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>

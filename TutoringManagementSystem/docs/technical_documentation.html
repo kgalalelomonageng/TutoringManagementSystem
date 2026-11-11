@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8">
+  <title>Monageng Tutoring - Technical Documentation</title>
+  <style>
+    @page { size: A4; margin: 18mm 17mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #233047; font: 10.5pt/1.55 "Segoe UI", Arial, sans-serif; }
+    h1, h2, h3 { color: #26345a; line-height: 1.2; }
+    h1 { margin: 0 0 8mm; font-size: 30pt; }
+    h2 { margin: 12mm 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid #e8e9f4; font-size: 19pt; }
+    h3 { margin: 6mm 0 2mm; font-size: 12pt; }
+    p { margin: 2mm 0 4mm; }
+    ul, ol { margin: 2mm 0 4mm; padding-left: 7mm; }
+    li { margin: 1.5mm 0; }
+    table { width: 100%; margin: 4mm 0 7mm; border-collapse: collapse; }
+    th, td { padding: 2.5mm; border: 1px solid #dfe3ed; text-align: left; vertical-align: top; }
+    th { background: #f0efff; color: #433c8d; }
+    .cover { min-height: 250mm; display: flex; flex-direction: column; justify-content: center; padding: 10mm; }
+    .brand { color: #6658d9; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .subtitle { max-width: 130mm; color: #657087; font-size: 15pt; }
+    .meta { margin-top: 20mm; padding: 6mm; border-left: 4px solid #6658d9; background: #f7f8fc; }
+    .note { padding: 4mm; border-left: 3px solid #e59a5e; background: #fff7ed; }
+    .page-break { page-break-before: always; }
+    code { padding: .5mm 1mm; border-radius: 2px; background: #f0f2f7; font: 9pt Consolas, monospace; }
+    .small { color: #67748a; font-size: 9pt; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="brand">Monageng Tutoring</div>
+    <h1>Tutoring Booking &amp;<br>Student Management System</h1>
+    <p class="subtitle">System requirements, analysis, database design, business rules, security, testing, and installation guide.</p>
+    <div class="meta">
+      <strong>Course:</strong> HPXS302-1 — Praxis S3B<br>
+      <strong>Assessment:</strong> Summative Assessment 1, July–December 2026<br>
+      <strong>Student:</strong> Kgalalelo Monageng<br>
+      <strong>Student number:</strong> 30HA2400106<br>
+      <strong>Implementation:</strong> PHP 8, MariaDB/MySQL, HTML5, CSS, JavaScript
+    </div>
+    <p class="small">Prepared 28 October 2026. Test payments are simulated and no card details are collected.</p>
+  </section>
+
+  <h2>1. System overview</h2>
+  <p>Monageng Tutoring supports students taking Mathematics and Data Science tutoring programmes. Students register, submit a programme payment for administrator verification, and book weekday sessions after enrolment activation. Tutors manage availability and respond to their assigned sessions. Administrators maintain records and verify payments.</p>
+  <p>The web application is implemented with server-rendered PHP and MariaDB. HTML5 form constraints and JavaScript improve usability; PHP repeats security-critical validation. Session role checks protect student, tutor, and administrator pages.</p>
+
+  <h2>2. Requirements</h2>
+  <h3>Functional requirements</h3>
+  <ol>
+    <li><strong>Registration and authentication:</strong> students self-register. Students, tutors, and administrators authenticate by email and password; successful login opens a role-specific dashboard.</li>
+    <li><strong>Programme payment and enrolment:</strong> students select a Mathematics or Data Science programme. The application records a pending payment and pending enrolment; an administrator verifies the payment, after which the enrolment becomes active.</li>
+    <li><strong>Session booking and tutor allocation:</strong> students with an active enrolment request a Monday–Friday session. The system matches programme subject to tutor expertise and an available time, assigns one tutor, and records the request.</li>
+    <li><strong>Tutor schedule and sessions:</strong> tutors maintain their own available time slots, view assigned sessions, confirm requests, complete sessions, or cancel/decline sessions.</li>
+    <li><strong>Administration and communication:</strong> administrators manage students, tutors, programmes, bookings, availability, and payment verification. Booking events create in-app notifications for the student, assigned tutor, and administrator.</li>
+  </ol>
+  <h3>Non-functional requirements</h3>
+  <ol>
+    <li><strong>Security:</strong> protect credentials with password hashing, role checks, prepared SQL, CSRF tokens on sensitive changes, validated input, and escaped HTML output.</li>
+    <li><strong>Reliability:</strong> use database transactions for payment/enrolment, booking/notification, and session-status/notification operations.</li>
+    <li><strong>Usability:</strong> responsive pages, labelled forms, HTML5 input types and required constraints, clear validation messages, and role-specific navigation.</li>
+    <li><strong>Performance:</strong> indexed relationship and lookup columns, bounded administrative lists, and targeted parameterized queries.</li>
+    <li><strong>Maintainability and growth:</strong> separate PHP, HTML, CSS, JavaScript, and SQL assets; normalized data; foreign keys and indexes support consistent extension.</li>
+  </ol>
+
+  <h2>3. Process and business rules</h2>
+  <ul>
+    <li>Only an authenticated student with an active enrolment in the selected programme can request a session for it.</li>
+    <li>Session dates must be valid weekdays and not earlier than the current date.</li>
+    <li>A tutor must be active, have expertise matching the programme, and have an available slot that is not already booked by a requested or confirmed session.</li>
+    <li>A booking is initially <em>Requested</em>. The assigned tutor or administrator can confirm it; a confirmed session can be completed or cancelled. Students can cancel their own requested or confirmed sessions.</li>
+    <li>State-changing booking actions are checked against the user's role and ownership, then recorded with participant notifications in one database transaction.</li>
+    <li>Payment is a demonstration record, not a payment-gateway transaction. Enrolment remains pending until administrator verification.</li>
+    <li>Notifications are stored in the application and shown to the relevant signed-in user. Email/SMS delivery is not configured.</li>
+  </ul>
+
+  <h2>4. Database design and normalization</h2>
+  <p>The fresh schema is in <code>database/schema.sql</code>. Primary keys identify records; foreign keys preserve relationships. All tables use InnoDB and UTF-8. Currency is stored as <code>DECIMAL(10,2)</code> and displayed in South African rand.</p>
+  <table>
+    <thead><tr><th>Entity</th><th>Purpose and key relationships</th></tr></thead>
+    <tbody>
+      <tr><td>students</td><td>Student identity, unique email, contact details, hashed password.</td></tr>
+      <tr><td>tutors</td><td>Tutor identity, unique email, hashed password, subject expertise and status.</td></tr>
+      <tr><td>administrators</td><td>Administrator identity, unique email and hashed password.</td></tr>
+      <tr><td>programmes</td><td>Programme name, description and fee.</td></tr>
+      <tr><td>payments</td><td>Student and programme payment record, amount, date and verification status.</td></tr>
+      <tr><td>enrolments</td><td>One enrolment per payment, date and activation status. Student/programme are obtained through the referenced payment.</td></tr>
+      <tr><td>bookings</td><td>Student, tutor, programme, date/time and lifecycle status.</td></tr>
+      <tr><td>tutor_availability</td><td>Tutor's unique date/time slot and availability status.</td></tr>
+      <tr><td>notifications</td><td>Booking event, recipient role/identifier, message and timestamp.</td></tr>
+    </tbody>
+  </table>
+  <h3>Normalization summary</h3>
+  <ul>
+    <li><strong>UNF:</strong> a single student/programme/payment/tutor/session sheet repeats student and programme values for each session.</li>
+    <li><strong>1NF:</strong> each entity has a primary key and atomic attributes; repeated session rows are stored as individual bookings.</li>
+    <li><strong>2NF:</strong> tables use single-column primary keys, and descriptive attributes depend on their whole key.</li>
+    <li><strong>3NF:</strong> student, tutor, administrator, programme, payment, enrolment, booking, availability, and notification facts are separated. Enrolments reference a unique payment; student/programme values are derived through that payment, avoiding duplicate dependencies.</li>
+  </ul>
+
+  <h2>5. Application and access control</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Permitted activities</th></tr></thead>
+    <tbody>
+      <tr><td>Student</td><td>Register, log in, submit programme payment, book an active programme's available weekday slot, inspect/cancel own sessions, view own notifications.</td></tr>
+      <tr><td>Tutor</td><td>Log in, manage own availability, view assigned sessions, confirm/decline requests, complete/cancel confirmed sessions, view own notifications.</td></tr>
+      <tr><td>Administrator</td><td>Manage students, tutors, programmes, and bookings; maintain any tutor's availability; verify payments and inspect system notifications.</td></tr>
+    </tbody>
+  </table>
+  <p>Passwords are created with PHP <code>password_hash()</code> and checked with <code>password_verify()</code>. Prepared statements are used for user-provided SQL values. Displayed database content is escaped with <code>htmlspecialchars()</code>. Session cookies are HttpOnly and SameSite=Lax, with Secure enabled for HTTPS.</p>
+
+  <h2>6. Testing and evidence</h2>
+  <table>
+    <thead><tr><th>Check</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>PHP syntax checks across application PHP files</td><td>Passed during implementation.</td></tr>
+      <tr><td>Fresh schema import on MariaDB 10.11</td><td>Passed; tables, indexes, and foreign keys created successfully.</td></tr>
+      <tr><td>Migration and demo seed re-import</td><td>Passed on an isolated legacy-shaped schema; seed can be imported twice without duplicate demo records.</td></tr>
+      <tr><td>Payment verification and automatic enrolment activation</td><td>Passed on the local XAMPP app with the synthetic pending Data Science account.</td></tr>
+      <tr><td>Active student booking, tutor assignment, confirmation, and completion</td><td>Passed end to end; subject match, role access, and participant notification records verified.</td></tr>
+      <tr><td>PHP and JavaScript syntax</td><td>All application PHP files and <code>js/main.js</code> passed their syntax checks.</td></tr>
+      <tr><td>Live card charging, email/SMS delivery, and production load</td><td>Out of scope for this educational demonstration; no gateway or message provider is configured.</td></tr>
+    </tbody>
+  </table>
+  <p>Browser checks confirmed that programme selection populates matching dates and the selected date populates available times with tutor names. The administrator booking list presents student and tutor names and email addresses, and the programme name, while retaining booking IDs for editing. Screenshots of registration, login, student payment and booking, student dashboard and notifications, tutor dashboard and availability, and administrator dashboard and booking management are included in <code>docs/screenshots/</code> and use the fictional assignment sample data. Follow <code>docs/README.md</code> to review the sample accounts and repeat the workflow in the assessment environment.</p>
+
+  <h2>7. Setup and run</h2>
+  <ol>
+    <li>Start Apache and MySQL in XAMPP.</li>
+    <li>For a fresh install, import <code>database/schema.sql</code> and then <code>database/sample_data.sql</code> in phpMyAdmin.</li>
+    <li>For the supplied existing local schema, make a database backup, then run <code>database/migrate_submission_features.sql</code> once and import the sample data.</li>
+    <li>Open <code>http://localhost/TutoringManagementSystem/</code>.</li>
+    <li>Use the assignment sample account credentials listed in <code>docs/README.md</code>. The shared sample password is <code>Monageng@1</code>.</li>
+  </ol>
+  <p class="small">Replace demonstration credentials and local database credentials before any non-local deployment. Do not redistribute the excluded legacy SQL dump; it contains personal information and plaintext passwords.</p>
+</body>
+</html>
