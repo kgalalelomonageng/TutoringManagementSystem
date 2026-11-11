@@ -99,9 +99,4 @@ Sample schedule dates are generated relative to the import date (the next
 Monday), so re-import `database/sample_data.sql` when preparing a later
 assessment run.
 
-## Submission
 
-The prepared archive is named
-`Monageng_Kgalalelo_HPXS302_SA1.zip`. Upload that ZIP and the separate
-`student_details.pdf` to the required platform. Review the PDFs and perform the
-demo checklist in the institution's target environment before submission.
